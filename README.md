@@ -1,6 +1,8 @@
 # tgpin
 
-![](assets/logo.svg)
+<p align="center">
+  <img src="assets/logo.svg" />
+</p>
 
 tgpin is a Python tool used to notify you about new or existing pins in a Telegram channel by email.
 
@@ -15,10 +17,12 @@ tgpin aims at solving this problem by sending an email with your most recent pin
 # Installation
 
 `git clone https://github.com/spidersouris/tgpin.git`
+
 `cd tgpin`
+
 `pip install --user -r requirements.txt`
 
-One of the most common ways to use tgpin is to set up [a cron job](https://crontab.guru/) (Linux) or a scheduled task (Windows: <kbd>Win</kbd> + <kbd>R</kbd> -> `taskschd.msc`) that runs the script at regular intervals.
+One of the most common ways to use tgpin is to set up [a cron job](https://crontab.guru/) (Linux) or [a scheduled task](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page) (Windows: <kbd>Win</kbd> + <kbd>R</kbd> -> `taskschd.msc`) that runs the script at regular intervals.
 
 # Configuration
 
@@ -56,10 +60,12 @@ The first time you run the script, you will be asked to enter your phone number 
 
 ## Optional configuration
 
-See the wiki for more information on optional configuration options.
+See the wiki (coming soon) for more information on optional configuration options.
 
 # Screenshot
 
 Below is a preview of the email notification for new pins:
 
-![](assets/screenshot.png)
+<p align="center">
+  <img src="assets/screenshot.png" width="75%" height="75%" />
+</p>
