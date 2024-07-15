@@ -1,0 +1,4 @@
+html2text==2024.2.26
+humanize==4.10.0
+pytz==2024.1
+Telethon==1.36.0

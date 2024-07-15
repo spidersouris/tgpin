@@ -1,0 +1,18 @@
+{
+    "subject_new": "tgpin: {c} new pins",
+    "subject_new_sg": "tgpin: {c} new pin",
+    "subject_reminder": "tgpin: check these {c} pins",
+    "subject_reminder_sg": "tgpin: check this pin",
+    "title_new": "New Telegram Pinned Messages Digest",
+    "title_reminder": "Reminder Telegram Pinned Messages Digest",
+    "intro_msg_new": "There has been <b>{c}</b> new pins since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_sg": "There has been <b>{c}</b> new pin since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_channel": "There has been <b>{c}</b> new pins in <b>{ch}</b> since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_channel_sg": "There has been <b>{c}</b> new pin in <b>{ch}</b> since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_reminder": "You should take a look at these <b>{c}</b> pins.<br>{total_msg}",
+    "intro_msg_reminder_sg": "You should take a look at this pin.<br>{total_msg}",
+    "intro_msg_reminder_channel": "You should take a look at these <b>{c}</b> pins in <b>{ch}</b>.<br>{total_msg}",
+    "intro_msg_reminder_channel_sg": "You should take a look at this pin in <b>{ch}</b>.<br>{total_msg}",
+    "total": "As a reminder, you have a total of <b>{t}</b> pinned messages.",
+    "total_sg": "As a reminder, you have a total of <b>{t}</b> pinned message."
+}

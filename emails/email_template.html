@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; font-size: 16px; line-height: 1.6; background-color: #f4f4f4; color: #333;">
+    <div style="max-width: 650px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(90deg, rgba(52,73,94,1) 48%, rgba(32,83,121,1) 100%); color: #ffffff; padding: 20px; text-align: center;">
+            <img src="{logo}" alt="tgpin.py" style="width: 50%;">
+            <h1 style="margin: 0; font-size: 24px;">{title}</h1>
+        </div>
+        <p style="text-align: center; line-height: 1.6; padding-top: 20px;">{intro_msg}</p>
+        <div style="padding: 20px;">
+            <table cellspacing="0" cellpadding="0" align="center" border="1" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <tr>
+                    <th style="width: 10%; padding: 12px; text-align: left; border-bottom: 1px solid #1b1b1b; background-color: #f2f2f2; font-weight: bold; color: #333;">ID</th>
+                    <th style="width: 75%; padding: 12px; text-align: left; border-bottom: 1px solid #1b1b1b; background-color: #f2f2f2; font-weight: bold; color: #333;">Message</th>
+                    <th style="width: 15%; padding: 12px; text-align: left; border-bottom: 1px solid #1b1b1b; background-color: #f2f2f2; font-weight: bold; color: #333;">Date</th>
+                </tr>
+                {table}
+            </table>
+        </div>
+        <div style="background-color: #34495e; color: #ffffff; text-align: center; padding: 10px; font-size: 12px;">
+            Message sent by tgpin.py — <a href="https://github.com/spidersouris/tgpin" href="_blank" style="color: #ffffff;">GitHub</a>
+        </div>
+    </div>
+</body>
+</html>
