@@ -26,13 +26,13 @@ One of the most common ways to use tgpin is to set up [a cron job](https://cront
 
 # Configuration
 
-Most of the configuration is done in the `config/config.ini` file. Below is a list of the required and optional configuration options.
+Most of the configuration is done in the `config/config-example.ini` file. Below is a list of the required and optional configuration options.
 
 ## Required configuration
 
 ### Telegram API ID and Hash
 
-To use tgpin, you need to create an application on the [Telegram website](https://my.telegram.org/apps). This will give you an API ID and Hash that must be specified in the `config/config.ini` file.
+To use tgpin, you need to create an application on the [Telegram website](https://my.telegram.org/apps). This will give you an API ID and Hash that must be specified in the `config/config-example.ini` file.
 
 ```ini
 [telegram]
@@ -43,7 +43,7 @@ api_hash = xxx
 
 ### Email
 
-To receive email notifications, make sure to configure `config/config.ini` to specify the SMTP server, port, and credentials of the email address used to send and receive the emails.
+To receive email notifications, make sure to configure `config/config-example.ini` to specify the SMTP server, port, and credentials of the email address used to send and receive the emails.
 
 ```ini
 [email]
@@ -60,12 +60,12 @@ The first time you run the script, you will be asked to enter your phone number 
 
 ## Optional configuration
 
-See the wiki (coming soon) for more information on optional configuration options.
+Optional configuration options are available and documented in the `config/config-example.ini` file.
 
 # Screenshot
 
 Below is a preview of the email notification for new pins:
 
 <p align="center">
-  <img src="assets/screenshot.png" width="75%" height="75%" />
+  <img src="assets/screenshot.png" width="70%" height="70%" />
 </p>
