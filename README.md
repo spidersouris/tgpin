@@ -1,7 +1,7 @@
 # tgpin
 
 <p align="center">
-  <img src="assets/logo.svg" width="75%" height="75%" />
+  <img src="assets/logo.svg" width="50%" height="50%" />
 </p>
 
 **tgpin** is a Python tool used to notify you about new or existing pins in a Telegram channel by email.
