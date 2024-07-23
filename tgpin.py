@@ -1,15 +1,17 @@
+"""
+Script to retrieve pinned messages from a Telegram channel, store them in a database,
+and send email alerts for new and reminder messages.
+"""
+
 import base64
 import os
-import re
 from datetime import datetime, timedelta
 import html2text
 import humanize
 import json
+import logging
 import pytz
-
-# TODO: better template for the email (logo)
-# TODO: add readme + logo
-# TODO: publish GH
+import re
 
 from telethon import TelegramClient
 from telethon.tl.custom import Message
@@ -17,38 +19,48 @@ from telethon.tl.types import MessageMediaPhoto, InputMessagesFilterPinned
 from telethon.helpers import TotalList
 
 from db.db import Database
-from config.config import Config
+from config.config import load_config, validate_config, get_base_dir
 from emails.emails import send_email
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-CONFIG = Config.instance()
+CONFIG = load_config()
 
+# [alerts]
 ALERT_NEW = CONFIG.getboolean("alerts", "alert_new")
+ALERT_NEW_TIME_WINDOW_MINUTES = int(CONFIG.alerts.alert_new_time_window_minutes)
+
 ALERT_REMINDER = CONFIG.getboolean("alerts", "alert_reminder")
-REMINDER_LIMIT = CONFIG.reminder_limit
+REMINDER_LIMIT = CONFIG.alerts.alert_reminder_limit
 INCLUDE_CHANNEL = CONFIG.getboolean("alerts", "include_channel")
 
-API_ID = int(CONFIG.api_id)
-API_HASH = CONFIG.api_hash
-CHANNEL = CONFIG.channel
+# [telegram]
+API_ID = CONFIG.telegram.api_id
+API_HASH = CONFIG.telegram.api_hash
+CHANNEL = CONFIG.telegram.channel
 
-EMAIL_ADDRESS = CONFIG.email_address
-EMAIL_PASSWORD = CONFIG.email_password
-EMAIL_HOST = CONFIG.email_host
-EMAIL_PORT = CONFIG.email_port
-EMAIL_STRINGS_PATH = CONFIG.email_strings_path
-EMAIL_TEMPLATE_PATH = CONFIG.email_template_path
+# [email]
+EMAIL_ADDRESS = CONFIG.email.address
+EMAIL_PASSWORD = CONFIG.email.password
+EMAIL_HOST = CONFIG.email.host
+EMAIL_PORT = CONFIG.email.port
+EMAIL_STRINGS_PATH = CONFIG.email.email_strings_path
+EMAIL_TEMPLATE_PATH = CONFIG.email.email_template_path
 
-DB_PATH = CONFIG.db_path
+# [database]
+DB_PATH = CONFIG.database.db_path
 
-TIMEZONE = CONFIG.timezone
-TIME_FORMAT = CONFIG.time_format
-TIME_WINDOW_MINUTES = CONFIG.time_window_minutes
+# [time]
+TIMEZONE = CONFIG.time.timezone
+TIME_FORMAT = CONFIG.time.time_format
 
-DEBUG = CONFIG.getboolean("debug", "debug")
+# [debug]
+LOG_LEVEL = CONFIG.debug.log_level
+LOG_CHILDREN = CONFIG.getboolean("debug", "log_children")
+SAVE_LOGS_TO_FILE = CONFIG.getboolean("debug", "save_logs_to_file")
+LOG_PATH = CONFIG.debug.log_path
 
-CONFIG.validate_config()
+validate_config(CONFIG)
 
 EMAIL_STRINGS = json.loads(
     open(os.path.join(CURRENT_DIR, EMAIL_STRINGS_PATH), "r").read()
@@ -61,21 +73,36 @@ CHANNEL_MAP = {
     "Me": "Saved Messages",
 }
 
-if DEBUG:
-    import logging
+# set up logging
+logfmt = logging.Formatter(
+    "[%(asctime)-15s] {%(pathname)s:%(lineno)d} " "%(levelname)-4s %(message)s"
+)
 
-    logging.basicConfig(
-        level=logging.DEBUG,
-        filename=os.path.join(CURRENT_DIR, "logs/tgpin.log"),
-        filemode="a+",
-        format="[%(asctime)-15s] {%(pathname)s:%(lineno)d} "
-        "%(levelname)-8s %(message)s",
-    )
+if LOG_CHILDREN:
+    logger = logging.getLogger()
+else:
+    logger = logging.getLogger(__name__)
+
+logger.setLevel(LOG_LEVEL)
+
+if SAVE_LOGS_TO_FILE:
+    fh = logging.FileHandler(LOG_PATH)
+    fh.setLevel(LOG_LEVEL)
+    fh.setFormatter(logfmt)
+    logger.addHandler(fh)
+
+ch = logging.StreamHandler()
+ch.setLevel(LOG_LEVEL)
+ch.setFormatter(logfmt)
+logger.addHandler(ch)
+
+logger.debug(
+    f"""Launching script with the following configuration
+    from {CONFIG.get_config_path()}:\n\n{CONFIG.list_config_values()}"""
+)
 
 if not any((ALERT_NEW, ALERT_REMINDER)):
-    if DEBUG:
-        logging.warning("No alerts enabled!")
-
+    logger.warning("No alerts enabled! No emails will be sent.")
 
 TELEGRAM_CLIENT = TelegramClient("anon", API_ID, API_HASH)
 
@@ -103,7 +130,7 @@ def get_image_src(image_blob: bytes) -> str:
     Returns:
         str: The image source.
     """
-    return f"data:image/png;base64,{base64.b64encode(image_blob).decode("utf-8")}"
+    return f'data:image/png;base64,{base64.b64encode(image_blob).decode("utf-8")}'
 
 
 def encode_image(image_path: str) -> str:
@@ -154,9 +181,152 @@ def humanize_time_diff(d1: datetime, d2: datetime) -> str:
     return humanize.naturaltime(d1 - d2)
 
 
-def send_email_with_html(
-    subject: str, count: int, html: str, plain_text: str
-):
+def setup_database() -> tuple[Database, bool, bool]:
+    """
+    Sets up the database by creating a table if it doesn't exist.
+    Returns the database instance, along with alert settings for new messages.
+
+    Returns:
+        tuple[Database, bool, bool]: A tuple containing the database instance,
+        and the alert settings for new messages (both by time window and last update).
+    """
+    db_instance = Database(get_base_dir(), DB_PATH)
+    table_exists = db_instance.table_exists("pinned_messages")
+
+    alert_new_get_by_last_update = CONFIG.getboolean(
+        "alerts", "alert_new_get_by_last_update"
+    )
+    alert_new_get_by_time_window = CONFIG.getboolean(
+        "alerts", "alert_new_get_by_time_window"
+    )
+
+    if not table_exists:
+        if alert_new_get_by_last_update:
+            logger.warn(
+                """get_by_last_update cannot be used without a table\n
+                Forcing get_by_time_window"""
+            )
+            alert_new_get_by_last_update = False
+            alert_new_get_by_time_window = True
+        logger.info("Table does not exist; creating...")
+        db_instance.create_table()
+
+    return db_instance, alert_new_get_by_time_window, alert_new_get_by_last_update
+
+
+async def process_pinned_messages(
+    telegram_client: TelegramClient, channel: str
+) -> tuple[list[tuple[int, str, datetime, bytes | None]], int]:
+    """
+    Processes the pinned messages of a Telegram channel.
+
+    Args:
+        telegram_client (TelegramClient): The Telegram client object.
+        channel (str): The channel name or ID.
+
+    Returns:
+        tuple: A tuple containing the processed pinned messages data
+        (i.e. message ID, message text, message date, and image data),
+        and the total count of pinned messages.
+    """
+    pinned_messages = await get_pinned_messages(telegram_client, channel)
+    total_count = len(pinned_messages)
+    pin_data = sorted(
+        [
+            (
+                m.id,
+                m.text,
+                m.date.replace(tzinfo=pytz.utc).astimezone(TZ),
+                await get_image_data(m),
+            )
+            for m in pinned_messages
+        ],
+        key=lambda x: x[0],
+    )
+    return pin_data, total_count
+
+
+def update_database(
+    db_instance: Database,
+    pin_data: list[tuple[int, str, datetime, bytes | None]],
+    alert_new_get_by_last_update: bool,
+) -> str | None:
+    """
+    Updates the database with the given pin data.
+
+    Args:
+        db_instance (Database): The instance of the database.
+        pin_data (list[tuple[int, str, datetime, bytes | None]): The list of
+        pin messages data that needs to be updated.
+        alert_new_get_by_last_update (bool): Flag indicating whether to alert
+        for new pins.
+
+    Returns:
+        str | None: The last update time if alerting by last update, otherwise None.
+    """
+    messages_ids = [m[0] for m in pin_data]
+    db_instance.remove_unpinned_messages(messages_ids)
+    last_update = db_instance.insert_or_ignore(pin_data, alert_new_get_by_last_update)
+    return last_update
+
+
+def get_recent_messages(
+    db_instance: Database,
+    alert_new_get_by_time_window: bool,
+    alert_new_get_by_last_update: bool,
+    last_update: str | None,
+) -> tuple[list[tuple], datetime]:
+    """
+    Retrieves the recent messages from the database based on the specified criteria.
+
+    Args:
+        db_instance (Database): The instance of the database to retrieve messages from.
+        alert_new_get_by_time_window (bool): Flag indicating whether to retrieve messages
+        within a time window.
+        alert_new_get_by_last_update (bool): Flag indicating whether to retrieve messages
+        based on the last update time.
+        last_update (str | None): The last update time to retrieve messages from.
+
+    Returns:
+        Tuple[List[Message], datetime]: A tuple containing the list of retrieved messages
+        (if any) and the time window used for retrieval.
+    """
+    time_window = datetime.now(TZ) - timedelta(minutes=ALERT_NEW_TIME_WINDOW_MINUTES)
+    if alert_new_get_by_time_window:
+        return db_instance.get_recent_messages_by_date(time_window), time_window
+    elif alert_new_get_by_last_update and last_update:
+        return db_instance.get_recent_messages_by_date(last_update), time_window
+    return [], time_window
+
+
+def process_alerts(
+    messages: list, total_count: int, time_window: datetime, alert_type: str
+) -> None:
+    """
+    Processes alerts based on the messages.
+
+    Args:
+        messages (list): List of messages.
+        total_count (int): Total count of messages.
+        time_window (datetime): Time window for the alerts.
+        alert_type (str): Type of alert.
+    """
+    count = len(messages)
+    if count > 0:
+        messages = [(m[1], url_to_anchor(m[2]), m[3], m[4]) for m in messages]
+        html = generate_html_content(
+            messages, count, total_count, time_window, alert_type
+        )
+        plain_text = html2text.html2text(html)
+        send_email_with_html(
+            get_email_string(f"subject_{alert_type}", count),
+            count,
+            html,
+            plain_text,
+        )
+
+
+def send_email_with_html(subject: str, count: int, html: str, plain_text: str) -> None:
     """
     Sends an email with HTML content.
 
@@ -177,8 +347,9 @@ def send_email_with_html(
     )
 
 
-def generate_html_content(messages: list, count: int, total_count: int,
-                          time_window: datetime, _type: str = "") -> str:
+def generate_html_content(
+    messages: list, count: int, total_count: int, time_window: datetime, _type: str = ""
+) -> str:
     """
     Generates HTML content for an email template using the provided messages.
 
@@ -201,20 +372,25 @@ def generate_html_content(messages: list, count: int, total_count: int,
         return f.read().format(
             logo=encode_image(os.path.join(CURRENT_DIR, "assets/logo.png")),
             title=get_email_string("title_" + _type),
-            intro_msg=get_email_string("intro_msg_" + _type, count, INCLUDE_CHANNEL)
-            .format(c=count,
-                    total_msg=get_email_string("total", total_count)
-                    .format(t=total_count),
-                    d=time_window.strftime(TIME_FORMAT),
-                    ch=CHANNEL_MAP.get(CHANNEL.title(), "Unknown Channel Mapping")
-                    if INCLUDE_CHANNEL else ""),
+            intro_msg=get_email_string(
+                "intro_msg_" + _type, count, INCLUDE_CHANNEL
+            ).format(
+                c=count,
+                total_msg=get_email_string("total", total_count).format(t=total_count),
+                d=time_window.strftime(TIME_FORMAT),
+                ch=(
+                    CHANNEL_MAP.get(CHANNEL.title(), "Unknown Channel Mapping")
+                    if INCLUDE_CHANNEL
+                    else ""
+                ),
+            ),
             table="".join(
                 f"""
                 <tr>
                 <td style="padding: 10px;">{m[0]}</td>
                 <td style="padding: 10px;">{m[1]}<br>
-                {f"<img src='{get_image_src(m[3])}' \
-                 style='max-width: 300px; height: auto;' />" if m[3] else ""}</td>
+                {f"<img src='{get_image_src(m[3])}'style='max-width:300px;height:auto;'/>"
+                 if m[3] else ""}</td>
                 <td style="padding: 10px;">{datetime.fromisoformat(m[2])
                                             .strftime(TIME_FORMAT)}
                 <br>(<b>{humanize_time_diff
@@ -226,7 +402,7 @@ def generate_html_content(messages: list, count: int, total_count: int,
                 </tr>
                 """
                 for m in messages
-            )
+            ),
         )
 
 
@@ -261,75 +437,36 @@ async def get_pinned_messages(client: TelegramClient, channel: str) -> TotalList
     )
 
     if pinned_messages is None:
-        if DEBUG:
-            logging.warning("No pinned messages found in %s", channel)
+        logger.warning("No pinned messages found in %s", channel)
         return []
     if isinstance(pinned_messages, list):
-        if DEBUG:
-            logging.info(
-                "Found %d pinned messages in %s", len(pinned_messages), channel
-            )
+        logger.info("Found %d pinned messages in %s", len(pinned_messages), channel)
         return pinned_messages
     return [pinned_messages]
 
 
 async def main():
-    db_instance = Database(CONFIG.get_base_dir(), DB_PATH)
-    table_exists = db_instance.table_exists("pinned_messages")
-    if not table_exists:
-        if DEBUG:
-            logging.info("Creating table")
-        db_instance.create_table()
+    db_instance, alert_new_get_by_time_window, alert_new_get_by_last_update = (
+        setup_database()
+    )
 
-    pinned_messages = await get_pinned_messages(TELEGRAM_CLIENT, CHANNEL)
-    total_count = len(pinned_messages)
+    pin_data, total_count = await process_pinned_messages(TELEGRAM_CLIENT, CHANNEL)
 
-    pin_data = [(
-        m.id,
-        m.text,
-        m.date.replace(tzinfo=pytz.utc).astimezone(TZ),
-        await get_image_data(m))
-        for m in pinned_messages
-    ]
+    last_update = update_database(db_instance, pin_data, alert_new_get_by_last_update)
 
-    db_instance.insert_or_ignore(pin_data, DEBUG)
+    recent_messages, time_window = get_recent_messages(
+        db_instance,
+        alert_new_get_by_time_window,
+        alert_new_get_by_last_update,
+        last_update,
+    )
 
-    time_window = datetime.now(TZ) - timedelta(minutes=TIME_WINDOW_MINUTES)
-    recent_messages = db_instance.get_recent_messages(time_window)
-    recent_count = len(recent_messages)
+    if ALERT_NEW:
+        process_alerts(recent_messages, total_count, time_window, "new")
 
-    if ALERT_NEW and recent_count > 0:
-        recent_messages = [
-            (m[0], url_to_anchor(m[1]), m[2], m[3]) for m in recent_messages
-        ]
-        html = generate_html_content(recent_messages, recent_count, total_count,
-                                     time_window, "new")
-        plain_text = html2text.html2text(html)
-
-        send_email_with_html(
-            get_email_string("subject_new", recent_count),
-            recent_count,
-            html,
-            plain_text,
-        )
-
-    reminder_messages = db_instance.get_random_messages(REMINDER_LIMIT)
-    reminder_count = len(reminder_messages)
-
-    if ALERT_REMINDER and reminder_count > 0:
-        reminder_messages = [
-            (m[0], url_to_anchor(m[1]), m[2], m[3]) for m in reminder_messages
-        ]
-        html = generate_html_content(reminder_messages, reminder_count, total_count,
-                                     time_window, "reminder")
-        plain_text = html2text.html2text(html)
-
-        send_email_with_html(
-            get_email_string("subject_reminder", reminder_count),
-            reminder_count,
-            html,
-            plain_text,
-        )
+    if ALERT_REMINDER:
+        reminder_messages = db_instance.get_random_messages(REMINDER_LIMIT)
+        process_alerts(reminder_messages, total_count, time_window, "reminder")
 
     db_instance.close()
 

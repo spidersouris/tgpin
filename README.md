@@ -1,10 +1,10 @@
 # tgpin
 
 <p align="center">
-  <img src="assets/logo.svg" />
+  <img src="assets/logo.svg" width="75%" height="75%" />
 </p>
 
-tgpin is a Python tool used to notify you about new or existing pins in a Telegram channel by email.
+**tgpin** is a Python tool used to notify you about new or existing pins in a Telegram channel by email.
 
 # Why?
 
@@ -22,7 +22,7 @@ tgpin aims at solving this problem by sending an email with your most recent pin
 
 `pip install --user -r requirements.txt`
 
-One of the most common ways to use tgpin is to set up [a cron job](https://crontab.guru/) (Linux) or [a scheduled task](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page) (Windows: <kbd>Win</kbd> + <kbd>R</kbd> -> `taskschd.msc`) that runs the script at regular intervals.
+One of the most common ways to use tgpin is to set up [a cron job](https://crontab.guru/) (Linux) or [a scheduled task](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page) (Windows: <kbd>Win</kbd> + <kbd>R</kbd> -> `taskschd.msc`) that runs the script at regular intervals with `python tgpin.py`.
 
 # Configuration
 
@@ -43,7 +43,7 @@ api_hash = xxx
 
 ### Email
 
-To receive email notification, you need to specify the SMTP server, port, and credentials of the email address used to send the emails in the `config/config.ini` file.
+To receive email notifications, make sure to configure `config/config.ini` to specify the SMTP server, port, and credentials of the email address used to send and receive the emails.
 
 ```ini
 [email]
