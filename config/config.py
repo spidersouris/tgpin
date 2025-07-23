@@ -5,8 +5,8 @@ and is used to load and validate the configuration values.
 See config-example.ini for an example configuration file.
 """
 
-import os
 import configparser
+import os
 from typing import Any, Dict, Optional
 
 """
@@ -195,7 +195,10 @@ def load_config(base_dir: Optional[str] = None) -> ConfigIni:
     elif os.path.isfile("config/config-example.ini"):
         config_path = "config/config-example.ini"
     else:
-        raise FileNotFoundError("Config file not found")
+        raise FileNotFoundError(
+            "Config file not found.\nMake sure there is a 'config' folder "
+            "in the root directory with a 'config.ini' or 'config-example.ini' file."
+        )
 
     cfg_parser = configparser.ConfigParser()
     cfg_parser.read(config_path)
@@ -215,8 +218,8 @@ def validate_config(config: ConfigIni) -> None:
         and config.alerts.alert_new_get_by_last_update is True
     ):
         raise ValueError(
-            """alert_new_get_by_time_window and alert_new_get_by_last_update
-            cannot both be set to 1"""
+            "alert_new_get_by_time_window and alert_new_get_by_last_update "
+            "cannot both be set to 1"
         )
 
     if (
@@ -224,8 +227,8 @@ def validate_config(config: ConfigIni) -> None:
         and config.alerts.alert_new_get_by_last_update is False
     ):
         raise ValueError(
-            """alert_new_get_by_time_window and alert_new_get_by_last_update
-            cannot both be set to 0"""
+            "alert_new_get_by_time_window and alert_new_get_by_last_update "
+            "cannot both be set to 0"
         )
 
     if config.telegram.api_id in ["", "YOUR_API_ID"]:
@@ -248,8 +251,8 @@ def validate_config(config: ConfigIni) -> None:
 
     if config.debug.log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         raise ValueError(
-            """Please set a valid log level in config.ini\n
-            Must be: DEBUG, INFO, WARNING, ERROR, CRITICAL"""
+            "Please set a valid log level in config.ini\n"
+            "Must be: DEBUG, INFO, WARNING, ERROR, CRITICAL"
         )
 
 

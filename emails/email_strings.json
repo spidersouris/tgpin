@@ -1,8 +1,9 @@
 {
-    "subject_new": "tgpin: {c} new pins",
-    "subject_new_sg": "tgpin: {c} new pin",
-    "subject_reminder": "tgpin: check these {c} pins",
-    "subject_reminder_sg": "tgpin: check this pin",
+  "pinned_only": {
+    "subject_new": "📌 tgpin: {c} new pins",
+    "subject_new_sg": "📌 tgpin: {c} new pin",
+    "subject_reminder": "📌🕙 tgpin: check these {c} pins",
+    "subject_reminder_sg": "📌🕙 tgpin: check this pin",
     "title_new": "New Telegram Pinned Messages Digest",
     "title_reminder": "Reminder Telegram Pinned Messages Digest",
     "intro_msg_new": "There has been <b>{c}</b> new pins since <b>{d}</b>.<br>{total_msg}",
@@ -15,4 +16,16 @@
     "intro_msg_reminder_channel_sg": "You should take a look at this pin in <b>{ch}</b>.<br>{total_msg}",
     "total": "As a reminder, you have a total of <b>{t}</b> pinned messages.",
     "total_sg": "As a reminder, you have a total of <b>{t}</b> pinned message."
+  },
+  "all_messages": {
+    "subject_new": "💬 tgpin: {c} new messages",
+    "subject_new_sg": "💬 tgpin: {c} new message",
+    "title_new": "New Telegram Messages Digest",
+    "intro_msg_new": "There has been <b>{c}</b> new messages since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_sg": "There has been <b>{c}</b> new message since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_channel": "There has been <b>{c}</b> new messages in <b>{ch}</b> since <b>{d}</b>.<br>{total_msg}",
+    "intro_msg_new_channel_sg": "There has been <b>{c}</b> new message in <b>{ch}</b> since <b>{d}</b>.<br>{total_msg}",
+    "total": "",
+    "total_sg": ""
+  }
 }
