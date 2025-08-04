@@ -1,5 +1,5 @@
 {
-  "pinned_only": {
+  "pinned_messages": {
     "subject_new": "📌 tgpin: {c} new pins",
     "subject_new_sg": "📌 tgpin: {c} new pin",
     "subject_reminder": "📌🕙 tgpin: check these {c} pins",
