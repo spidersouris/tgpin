@@ -86,7 +86,9 @@ else:
 logger.setLevel(LOG_LEVEL)
 
 if SAVE_LOGS_TO_FILE:
-    fh = logging.FileHandler(LOG_PATH)
+    path = os.path.join(get_base_dir(), LOG_PATH)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fh = logging.FileHandler(path, mode="w", encoding="utf-8")
     fh.setLevel(LOG_LEVEL)
     fh.setFormatter(logfmt)
     logger.addHandler(fh)
@@ -205,8 +207,8 @@ def setup_database() -> tuple[Database, bool, bool]:
     if not pinned_table_exists or not all_table_exists:
         if alert_new_get_by_last_update:
             logger.warning(
-                """get_by_last_update cannot be used without a table\n
-                Forcing get_by_time_window"""
+                "get_by_last_update cannot be used without a table"
+                " Forcing get_by_time_window"
             )
             alert_new_get_by_last_update = False
             alert_new_get_by_time_window = True
@@ -497,10 +499,17 @@ async def main():
 
     if ALERT_NEW:
         process_alerts(recent_messages, total_count, time_window, "new")
+    else:
+        logger.info("alert_new is disabled, skipping new message alerts")
 
     if ALERT_REMINDER and ALERT_PINNED_ONLY:
         reminder_messages = db_instance.get_random_messages(REMINDER_LIMIT)
         process_alerts(reminder_messages, total_count, time_window, "reminder")
+    else:
+        logger.info(
+            "alert_reminder and/or alert_pinned_only is disabled, "
+            "skipping reminder message alerts"
+        )
 
     db_instance.close()
 

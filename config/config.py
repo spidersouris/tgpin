@@ -190,10 +190,10 @@ def load_config(base_dir: Optional[str] = None) -> ConfigIni:
     if base_dir is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    if os.path.isfile("config/config.ini"):
-        config_path = "config/config.ini"
-    elif os.path.isfile("config/config-example.ini"):
-        config_path = "config/config-example.ini"
+    if os.path.isfile(os.path.join(base_dir, "config/config.ini")):
+        config_path = os.path.join(base_dir, "config/config.ini")
+    elif os.path.isfile(os.path.join(base_dir, "config/config-example.ini")):
+        config_path = os.path.join(base_dir, "config/config-example.ini")
     else:
         raise FileNotFoundError(
             "Config file not found.\nMake sure there is a 'config' folder "
