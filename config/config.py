@@ -200,7 +200,9 @@ def load_config(base_dir: Optional[str] = None) -> ConfigIni:
             "in the root directory with a 'config.ini' or 'config-example.ini' file."
         )
 
-    cfg_parser = configparser.ConfigParser()
+    cfg_parser = configparser.ConfigParser(
+        delimiters=("=", ":"), inline_comment_prefixes=("#", ";")
+    )
     cfg_parser.read(config_path)
 
     return ConfigIni(cfg_parser, config_path)
