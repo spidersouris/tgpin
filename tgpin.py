@@ -408,7 +408,9 @@ def generate_html_content(
                 f"""
                 <tr>
                 <td style="padding: 10px;">{m[0]}</td>
-                <td style="padding: 10px;">{m[1]}<br>
+                <td style="padding: 10px;word-break: break-word;overflow-wrap: anywhere;">{
+                    m[1]
+                }<br>
                 {
                     f"<img src='{get_image_src(m[3])}'style='max-width:300px;height:auto;'/>"
                     if m[3]
